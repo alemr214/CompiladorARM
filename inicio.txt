@@ -1,0 +1,7 @@
+Inicio main
+{
+  var num ent;
+  while(num > 0){
+    num = 10;
+  }
+}Fin

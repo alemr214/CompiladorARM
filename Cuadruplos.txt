@@ -1,0 +1,22 @@
+ent ->  x
+ent ->  suma
+ent ->  resta
+flot ->  division
+flot ->  multiplicacion
+flot ->  residuo
+t0 -> a mult c
+t1 -> b div t0
+t2 -> a mas t1
+x -> = t2
+t3 -> a mas c
+suma -> = t3
+t4 -> 2 mas 2
+suma -> = t4
+t5 -> 3 menos 2
+resta -> = t5
+t6 -> 4 div 2
+division -> = t6
+t7 -> 2 mult 2
+multiplicacion -> = t7
+t8 -> 8 res 2
+residuo -> = t8

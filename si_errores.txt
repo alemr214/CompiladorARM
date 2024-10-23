@@ -1,0 +1,7 @@
+Inicio main
+{
+  si(num >= num2 and num2){
+	var num1 ent = 10
+	var num2 flot
+}
+}Fin

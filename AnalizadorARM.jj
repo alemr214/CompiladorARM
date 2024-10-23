@@ -1,0 +1,883 @@
+options {
+    IGNORE_CASE = true;
+    STATIC = false;
+    BUILD_PARSER = true;
+    ERROR_REPORTING = true;
+    LOOKAHEAD = 1;
+}
+
+PARSER_BEGIN(AnalizadorARM)
+import java.io.*;
+import java.util.ArrayList;
+import java.io.FileWriter;
+import java.io.PrintWriter;
+
+public class AnalizadorARM {
+    //Array que guarda los Errores encontrados en el codigo que se ejecuta
+    static ArrayList<String> tabla = AnalizadorARMTokenManager.tablaErrores;
+    //Array que guarda los Errores semanticos encontrados en el codigo
+    static ArrayList<String> tabla2 = new ArrayList<String>();
+    //Array que guarda los valores para convertirlos a cuadruplos
+    static ArrayList<String> intermediateCode = new ArrayList<String>();
+    //Generamos una tabla de simbolos
+    public SymbolTable tablaSimbolos = new SymbolTable();
+
+    public SymbolTable getSymbolTable() {
+        return tablaSimbolos;
+    }
+
+    static int tempCount = 0;
+    static int labelCount = 0;
+    //Generamos una tabla de simbolos
+    //private SymbolTable tablaSimbolos = new SymbolTable();
+
+    //Crea una nueva variable temporal
+    static String newTemp() {
+            return "t" + tempCount++;
+    }
+    static String newLabel() {
+            return "L" + labelCount++;
+    }
+
+    //Guarda las variaables temporales con su respectiva operacion en el Array
+    static void emit(String op, String arg1, String arg2, String result) {
+        if (arg2.isEmpty()) {
+            intermediateCode.add(result + " -> " + op + " " + arg1);
+        } else {
+            intermediateCode.add(result + " -> " + arg1 + " " + op + " " + arg2);
+        }
+    }
+
+    public static void main(String[] args) {
+        try {
+            // Guarda el primer archivo mandado
+            String nombreArchivo = args[0];
+            //Genera un FileReader para leer el archivo y da el archivo como parametro
+            FileReader lector = new FileReader(nombreArchivo);
+            //Crea una instancia de AnalizadorARM, pasando el lector del archivo como argumento.
+            AnalizadorARM parser = new AnalizadorARM(lector);
+
+            //Llama al método parse para comenzar el análisis léxico y sintáctico del archivo.
+            parser.parse(nombreArchivo);
+
+
+        try{
+            FileWriter archivo = new FileWriter("Cuadruplos.txt");
+            PrintWriter escritor = new PrintWriter(archivo);
+
+        for (String code : intermediateCode) {
+            escritor.println(code);
+        }
+        escritor.close();
+
+        }catch(IOException e){
+
+        }
+
+
+            //Si se encuentras algun objeto en la lista tabla es que hay un error sintatico asi que se imprime el error
+            if (tabla.size() != 0) {
+                System.out.println("\n ==================================================================================== \n");
+                System.out.println("\n** Se encontraron errores sintácticos en el código **\n");
+                for (String error : tabla) {
+                    System.out.println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ \n");
+                    System.out.println(error);
+                }
+            } else { //Si no hay ningun error se meciona y se sigue
+                System.out.println("\n ==================================================================================== \n");
+                System.out.println("\t ** NO se encontraron errores sintácticos en el código ** ");
+            }
+
+            if (tabla2.size() != 0) {
+                System.out.println("\n ==================================================================================== \n");
+                System.out.println("\n** Se encontraron errores semanticos en el código **\n");
+                for (int i = 0; tabla2.size() > i; i++ ) {
+                    System.out.println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ \n");
+                    System.out.println(tabla2.get(i));
+                }
+            } else { //Si no hay ningun error se meciona y se sigue
+                System.out.println("\n ==================================================================================== \n");
+                System.out.println("\t ** NO se encontraron errores semanticos en el código ** ");
+            }
+        } catch (FileNotFoundException fe) {
+            System.out.println(fe.getMessage());
+        } catch (IOException io) {
+            System.out.println(io.getMessage());
+        }
+    }
+
+    //Aqui se lee los tokems y se pasan por el analizis sintatico y lexico
+    public void parse(String nombreArchivo) throws IOException {
+        Token token; //Se genera una variable tipo Token para guardar las variables del texto
+        int columna = 1; // Contador de columna
+        FileReader lector = new FileReader(nombreArchivo); //Se genera otro Redactor para leer el archivo
+        //Genera tokems desde el archivo de entrada
+        AnalizadorARMTokenManager lexicManager = new AnalizadorARMTokenManager(new SimpleCharStream(lector));
+
+
+        //Variables para saber si hay errores y saber si se analizo todo el archivo
+        boolean seEncontraronErrores = false;
+        boolean seVerificaronTokens = false;
+
+        String tipoActual = ""; // Para mantener el tipo de la variable actual
+        boolean esperandoIdentificador = false; // Para saber si después de un tipo debemos esperar un identificador (nombre de la variable)
+
+
+        // Analiza los tokens léxicos hasta el final del archivo
+        while ((token = lexicManager.getNextToken()).kind != AnalizadorARMConstants.EOF) {
+            seVerificaronTokens = true;
+            if (token.specialToken != null) { //Detecta si el tokem es especial y ajusta el contador de columna
+                String specialTokenImage = token.specialToken.image;
+                for (int i = 0; i < specialTokenImage.length(); i++) {
+                    if (specialTokenImage.charAt(i) == '\n') {
+                        columna = 1; // Reiniciar el contador de columna en cada salto de línea
+                    }
+                }
+            }
+            if (token.kind == AnalizadorARMConstants.ERROR) { //Si se encuentra un error se comunica
+                if (!seEncontraronErrores) {
+                    System.out.print("\t ** Se encontraron errores léxicos en el código ** \n");
+                    seEncontraronErrores = true;
+                } //Se muestra el tokem y la linea y columna
+                System.out.print("Error léxico en línea " + (token.beginLine) + ", columna " + columna + "\n");
+                System.out.print("Carácter inválido: " + (char) token.image.charAt(0) + "\n");
+            } else {
+                columna += token.image.length(); // Incrementar el contador de columna por la longitud del token
+            }
+
+
+
+            // Si encontramos un tipo de dato (int, float, boolean)
+        if (token.kind == AnalizadorARMConstants.ENT || token.kind == AnalizadorARMConstants.FLOT || token.kind == AnalizadorARMConstants.BOOL) {
+            tipoActual = token.image; // Guardamos el tipo (ej. "int")
+            esperandoIdentificador = true; // Ahora esperamos que el próximo token sea el nombre de la variable
+        }
+
+        // Detectar el nombre de la variable (identificador)
+        if (esperandoIdentificador && token.kind == AnalizadorARMConstants.IDENTIFICADOR) {
+            String nombreVariable = token.image;
+
+            // Verificar si la variable ya existe en la tabla de símbolos
+            if (tablaSimbolos.contains(nombreVariable)) {
+                System.out.println("Error semántico: La variable " + nombreVariable + " ya ha sido declarada");
+            } else {
+                tablaSimbolos.addSymbol(nombreVariable, tipoActual); // Agregar la variable a la tabla de símbolos
+                System.out.println("Símbolo agregado: " + nombreVariable + ", Tipo: " + tipoActual);
+            }
+            esperandoIdentificador = false; // Ya no esperamos un identificador hasta que haya otro tipo de variable
+        }
+
+
+        }
+
+        
+        //Si no se encontraron se comunica
+        if (!seEncontraronErrores && seVerificaronTokens) {
+            System.out.print("\t ** NO se encontraron errores léxicos en el código ** \n");
+        }
+
+        // Ahora intenta analizar la gramática
+        try {
+            principal();  // Aquí comienza el análisis de la gramática
+        } catch (ParseException e) {
+            tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
+        }
+
+
+    // Imprimir la tabla de símbolos después de todo el análisis
+    System.out.println("Tabla de símbolos:");
+    tablaSimbolos.Tabla();  // Aquí imprime la tabla en la consola
+    }
+
+
+
+    //Traduce el mensaje de error
+    String manejarErrorSintactico(ParseException e) {
+        // Traduce el mensaje de error de inglés a español
+        String mensajeOriginal = e.getMessage();
+        String mensajeTraducido = mensajeOriginal
+            .replace("Encountered", "Encontrado")
+            .replace("at line", "en la línea")
+            .replace("column", "columna")
+            .replace("Was expecting:", "Se esperaba:")
+            .replace("Was expecting one of:", "Se espera una de estas opciones:");
+
+        // Retorna el mensaje de error traducido
+        return "Error sintáctico: " + mensajeTraducido + "\n" + "Token actual: " + e.currentToken + "\n";
+
+    }
+}
+PARSER_END(AnalizadorARM)
+
+SKIP:
+{
+   " "
+   |"\t"
+   |"\r"
+}
+
+SPECIAL_TOKEN:
+{
+   "\n"
+}
+
+TOKEN: //Variables
+{
+    <ENT: "ent">
+    | <FLOT: "flot">
+    | <BOOL: "bool">
+    | <CAD: "cad">
+    | <VAR: "var">
+}
+
+TOKEN: //Operadores Logicos-Aritmeticos
+{
+    <MAS: "mas">
+    | <MENOS: "menos">
+    | <MULT: "mult">
+    | <DIV: "div">
+    | <RES: "res">
+    | <INC: "inc">
+    | <DEC: "dec">
+    | <AND: "AND">
+    | <OR: "OR">
+    | <NOT: "NOT">
+}
+
+TOKEN: //Comparadores
+{
+    <IGUALDAD: "==">
+    | <IGUAL: "=">
+    | <DESIGUALDAD: "!=">
+    | <MAYOR: ">">
+    | <MENOR: "<">
+    | <MAYORIGUAL: ">=">
+    | <MENORIGUAL: "<=">
+}
+
+TOKEN: //DIGITOS
+{
+    <ENTEROS: (["0"-"9"])+>
+    | <NUMERODECIMAL: (["0"-"9"])*("."["0"-"9"])+>
+}
+
+TOKEN: //CICLOS
+{
+    <FOR: "for">
+    | <WHILE: "while">
+}
+
+TOKEN: //ARREGLOS
+{
+    <MATRIZ: "matrix">
+    | <VECTOR: "vec">
+}
+
+TOKEN: //CONDICIONALES
+{
+    <SI: "SI">
+    | <SINO: "SINO">
+}
+
+TOKEN: //LECTURA
+{
+    <LEER: "leer">
+}
+
+TOKEN: //ESCRITURA
+{
+    <ESCRIBIR: "escribir">
+}
+
+TOKEN: //SIMBOLOS DE DELIMITACION
+{
+    <PUNTO: ".">
+    | <DELIMITADOR: ";">
+    | <COMA: ",">
+    | <CORCHIZQ: "[">
+    | <CORCHDER: "]">
+    | <LLAVEIZQ: "{">
+    | <LLAVEDER: "}">
+    | <PARENIZQ: "(">
+    | <PARENDER: ")">
+    | <CONCATENAR: "+">
+}
+
+TOKEN: //Palabras Reservadas
+{
+    <VOID: "void">
+    | <PUBLICO: "publico">
+    | <PRIVADO: "privado">
+    | <ESTATICO: "estatico">
+    | <RETURN: "return">
+}
+
+TOKEN:
+{
+    <MATH: "Math">
+    | <ARRAYCLASS: "Array">
+    | <RANDOMCLASS: "Random">
+    | <TIMERCLASS: "Timer">
+}
+
+TOKEN: //FUNCIONES DE CLASES
+{
+    <RAMDONFUNC: (<RANDOMCLASS>)"."("next"|"equals")>
+    | <ARRAYFUNC: (<ARRAYCLASS>)"."("clear"|"clone"|"copy"|"reverse")>
+    | <TIMERFUNC: (<TIMERCLASS>)"."("start"|"stop")>
+    | <MATHFUNC: (<MATH>)"."("abs"|"acos"|"acosh"|"tan"|"cos"|"sen"|"random"|"sqrt")>
+    | <INICIO: "Inicio">
+    | <FIN: "Fin">
+    | <MAIN: "Main()">
+    | <PROC: "proc">
+    | <FUNC: "func">
+}
+
+TOKEN: // IDENTIFICADOR
+{
+    <IDENTIFICADOR: ["a"-"z", "A"-"Z"](["a"-"z", "A"-"Z", "0"-"9", "_"])*>
+}
+
+TOKEN: //Reconocimiento de valores
+{
+    <VCAD: "\""(["a"-"z"]|["A"-"Z"]|["0"-"9"]|[","]|["."]|[" "]|[":"]|["="])+"\"">
+}
+
+TOKEN: // Manejo de Errores
+{
+    <ERROR: ~[]>
+}
+
+TOKEN_MGR_DECLS : {
+    static ArrayList<String> tablaErrores = new ArrayList<String>();
+}
+
+void principal() :{} 
+{
+    try {
+        {tablaSimbolos.enterScope();}
+        <INICIO> <IDENTIFICADOR> <LLAVEIZQ>
+        (
+            Codigo()
+        )+
+        <LLAVEDER> <FIN>
+        {tablaSimbolos.exitScope();}
+    } catch (ParseException e) {
+        tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
+    }
+}
+
+void Codigo() : {}
+{
+        declararVariable()
+        | gramaticaEscribir()
+        | gramaticaLeer()
+        | gramaticaSi()
+        | gramaticaWhile()
+        | gramaticaAsignacion()
+        | gramaticaOperadorLogico()
+        | gramaticaFor()
+        | inicializarArregloEntero()
+        | inicializarArregloCadena()
+        | SentenciasProcedimientos()
+        | SentenciasFunciones()
+}
+
+void declararVariable() : {Token t,t1, t3;}
+{
+    try {
+        <VAR> t =  <IDENTIFICADOR>
+        t1 = tipoDato()
+        {
+            emit("", t.image, "", t1.image);
+
+            if(tablaSimbolos.contains(t.image)) tabla2.add("Error semántico: La variable " + t.image + " ya ha sido declarada");
+            else tablaSimbolos.addSymbol(t.image, t1.image);
+        }
+        /*
+        [<IGUAL> 
+        t3 = valor2(t1.image)
+        {
+            emit("=", t3.image, "", temp);
+        }
+        ]*/ <DELIMITADOR>
+
+    } catch (ParseException e) {
+        tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
+    }
+}
+
+Token tipoDato() : {Token t = null;}
+{
+    (t = <ENT>
+    | t = <FLOT>
+    | t = <BOOL>
+    | t = <CAD>
+    )
+    {
+        return t;
+    }
+}
+
+Token valor2(String tipoEsperado) : {Token t;}
+{
+    t = <ENTEROS> {
+        if (!tipoEsperado.equals("ent") && !tipoEsperado.isEmpty()) {
+            tabla2.add("Error semántico: Se esperaba un valor de tipo " + tipoEsperado + " pero se encontró un entero");
+        }
+        return t;
+    }
+    | t = <VCAD> {
+        if (!tipoEsperado.equals("cad") && !tipoEsperado.isEmpty()) {
+            tabla2.add("Error semántico: Se esperaba un valor de tipo " + tipoEsperado + " pero se encontró una cadena");
+        }
+        return t;
+    }
+    | t = <NUMERODECIMAL> {
+        if (!tipoEsperado.equals("flot") && !tipoEsperado.isEmpty()) {
+            tabla2.add("Error semántico: Se esperaba un valor de tipo " + tipoEsperado + " pero se encontró un número decimal");
+        }
+        return t;
+    }
+    | t = <IDENTIFICADOR> {
+        if (!tablaSimbolos.contains(t.image) && !tipoEsperado.isEmpty()) {
+            tabla2.add("Error semántico: La variable " + t.image + " no ha sido declarada");
+        } else if (!tablaSimbolos.checkType(t.image, tipoEsperado)) {
+            tabla2.add("Error semántico: Se esperaba un valor de tipo " + tipoEsperado + " pero se encontró " + tablaSimbolos.getType(t.image));
+        }
+        return t;
+    }
+}
+
+void valor() : {}
+{
+    <ENTEROS> | <VCAD> | <NUMERODECIMAL> | <IDENTIFICADOR>
+}
+
+void gramaticaEscribir() : {}
+{
+    try {
+        <ESCRIBIR> <PARENIZQ>
+            ( 
+                (<VCAD> | <IDENTIFICADOR>)
+                (<CONCATENAR> (<VCAD> | <IDENTIFICADOR>))* 
+            )+
+         <PARENDER> <DELIMITADOR>
+    } catch (ParseException e) {
+        tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
+    }
+}
+
+void gramaticaLeer() : {}
+{
+    try {
+        <LEER> <PARENIZQ>
+           <IDENTIFICADOR>
+        <PARENDER> <DELIMITADOR>
+    } catch (ParseException e) {
+        tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
+    }
+}
+
+void gramaticaSi() : {String labelElse, labelEnd;}
+{
+    try {
+        {
+            tablaSimbolos.enterScope();
+            labelElse = newLabel();
+            labelEnd = newLabel();
+        }
+            <SI> <PARENIZQ> 
+            condicion(labelElse)
+            {
+                emit("goto", "t" + String.valueOf(tempCount-1), "", labelEnd);
+            }
+            <PARENDER> <LLAVEIZQ> (Codigo())+ 
+            
+            <LLAVEDER>
+            ( gramaticaSiNo() )*
+            {
+                emit("label", "", "", labelEnd);
+                tablaSimbolos.exitScope();
+            }
+        } catch (ParseException e) {
+            tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
+        }
+}
+
+void gramaticaSiNo() : {}
+{
+    try {
+        {tablaSimbolos.enterScope();}
+            <SINO> <LLAVEIZQ> (Codigo())+ <LLAVEDER>
+            {tablaSimbolos.exitScope();}
+        } catch (ParseException e) {
+            tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
+        }
+}
+
+void condicion(String labelElse) : {Token t1,t2,op;}
+{
+    try {
+     t1 = valor2(labelElse) 
+     op= OperadoresComparadores() 
+     t2 = valor2(labelElse)
+     {
+        String temp = newTemp();
+        emit(op.image, t1.image, t2.image, temp);
+        // emit("if", labelElse, "", temp);
+     } 
+     (condicionLogicos())*
+    } catch (ParseException e) {
+            tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
+        }
+}
+
+void condicionLogicos() : {}
+{
+    try {
+    OperadoresLogicos() valor() OperadoresComparadores() valor()
+    } catch (ParseException e) {
+            tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
+        }
+}
+
+void OperadoresLogicos() : {}
+{
+     <AND> | <OR> | <NOT>
+}
+
+Token OperadoresComparadores() : {Token t;}
+{
+    (t  = <IGUALDAD> 
+    |t =  <DESIGUALDAD> 
+    |t =  <MAYOR> 
+    |t =  <MENOR> 
+    |t =  <MAYORIGUAL> 
+    |t =  <MENORIGUAL>)
+    {return t;}
+}
+
+void gramaticaWhile() : {String labelStart, labelEnd;}
+{
+    try{
+        {
+            labelStart = newLabel();
+            labelEnd = newLabel();
+            tablaSimbolos.enterScope();
+            emit("label", "", "", labelStart);
+        }
+        <WHILE> <PARENIZQ> 
+        condicion("") 
+        {
+            emit("goto", "t" + String.valueOf(tempCount-1), "", labelEnd);
+        }
+        <PARENDER> <LLAVEIZQ> (Codigo())+ <LLAVEDER> 
+        {
+            tablaSimbolos.exitScope();
+            emit("goto", "", "", labelStart);
+            emit("label", "", "", labelEnd);
+        }
+    } catch (ParseException e) {
+            tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
+        }
+}
+
+void gramaticaAsignacion(): {Token t; String t2;}
+{
+    try{
+	        t = < IDENTIFICADOR >
+	        < IGUAL >
+	        t2 = operacionSimple(tablaSimbolos.getType(t.image))
+	            {
+	                if(!tablaSimbolos.contains(t.image)){
+                    tabla2.add("Error semántico: La variable " + t.image + " no ha sido declarada");
+                }
+                emit("=",t2, "", t.image);
+	        }
+	        <DELIMITADOR>
+        } catch (ParseException e) {
+            tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
+        }
+}
+
+String operacionSimple(String type): {Token t1 ;String t , t2;}
+{
+    try{
+            t = termino(type)
+            ( t1 = operadorAritmeticoMasMenos() t2 = termino(type)
+            {
+            String temp = newTemp();
+            emit(t1.image,t,t2,temp);
+            t = temp;
+            }
+            )*
+            {
+            return t;
+            }
+        } catch (ParseException e) {
+            tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
+        }
+}
+
+String operacionParentesis(String type): {String t;}
+{
+    try{
+	        < PARENIZQ > t = operacionSimple(type) < PARENDER >
+	        {
+	        return t;
+	        }
+        } catch (ParseException e) {
+            tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
+        }
+}
+
+Token operadorAritmeticoMasMenos(): {Token t;}
+{
+	(t = < MAS > | t = < MENOS >)
+	{return t;}
+}
+
+Token operadorAritmeticoMulDiv(): {Token t;}
+{
+	(t = < MULT> | t = < DIV> | t = <RES>)
+	{return t;}
+}
+
+String termino(String type) : {String t1, t2; Token op;}
+{
+    t1 = Factor(type)
+    (
+        op = operadorAritmeticoMulDiv() t2 = Factor(type) {
+            String temp = newTemp();
+            emit(op.image, t1, t2, temp);
+            t1 = temp;
+        }
+    )*
+    { return t1; }
+}
+
+String Factor(String type) : {Token t; String t1;}
+{
+  t = valor2(type) {return t.image;}
+  | t1 = operacionParentesis(type) {return t1;}
+
+
+}
+
+void gramaticaOperadorLogico(): {}
+{
+    try{
+        < BOOL > <IDENTIFICADOR> 
+        <IGUAL> 
+            condicionLogico()
+        <DELIMITADOR>
+                } catch (ParseException e) {
+            tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
+        }
+}
+
+void condicionLogico(): {}
+{
+    try{
+        valor() OperadoresLogicos() valor()
+                } catch (ParseException e) {
+            tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
+        }
+}
+
+void gramaticaFor(): {}
+{
+    try{
+        {tablaSimbolos.enterScope();}
+        <FOR>  <PARENIZQ>
+            (condicionFor())
+        <PARENDER> <LLAVEIZQ> (Codigo())+ <LLAVEDER>
+        {tablaSimbolos.exitScope();}
+                } catch (ParseException e) {
+            tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
+        }
+}
+
+void condicionFor(): {}
+{
+    try{
+            (tipoDato()) (comparacionForIgual()) <DELIMITADOR> 
+            (comparacionFor()) <DELIMITADOR> operadorIncDec() <IDENTIFICADOR>
+                } catch (ParseException e) {
+            tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
+        }
+}
+
+void comparacionFor(): {}
+{
+    try{
+            <IDENTIFICADOR> OperadoresComparadores() valor()
+                } catch (ParseException e) {
+            tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
+        }
+}
+
+void comparacionForIgual(): {}
+{
+    try{
+            <IDENTIFICADOR> <IGUAL> <ENTEROS>
+                } catch (ParseException e) {
+            tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
+        }
+}
+
+void operadorIncDec(): {}
+{
+	< INC > | < DEC > 
+}
+
+void inicializarArregloEntero() : {Token t, t1, ta; int cantidadValores = 0; int tamanio;}
+{
+    try{
+
+       t1 = <ENT> t = <IDENTIFICADOR>
+        {
+            if(tablaSimbolos.contains(t.image)) tabla2.add("Error semántico: La variable " + t.image + " ya ha sido declarada");
+            else tablaSimbolos.addSymbol(t.image, t1.image);
+        }
+        <CORCHIZQ> ta = <ENTEROS> <CORCHDER>
+        <IGUAL> <LLAVEIZQ> (cantidadValores = ValoresEntero(cantidadValores)) <LLAVEDER> <DELIMITADOR>
+        {
+        cantidadValores = cantidadValores + 1;
+        tamanio = Integer.parseInt(ta.image);
+         if(cantidadValores > tamanio) tabla2.add("Error semántico: Se exedio el tamaño del arreglo");
+         if(cantidadValores < tamanio) tabla2.add("Error semántico: No se abarco todo el tamaño del arreglo");
+         if(tamanio == 0) tabla2.add("Error semántico: Valor no permitido");
+        }
+    } catch (ParseException e) {
+            tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
+        }
+}
+
+void inicializarArregloCadena() : {Token t, t1, ta; int tamanio, cantidadValores = 0;}
+{
+    try{
+
+        t1 = <CAD> t = <IDENTIFICADOR>
+        {
+            if(tablaSimbolos.contains(t.image)) tabla2.add("Error semántico: La variable " + t.image + " ya ha sido declarada");
+            else tablaSimbolos.addSymbol(t.image, t1.image);
+        }
+        <CORCHIZQ> ta = <ENTEROS> <CORCHDER>
+        <IGUAL> <LLAVEIZQ> (cantidadValores = ValoresCadena(cantidadValores))  <LLAVEDER> <DELIMITADOR>
+        {
+        cantidadValores = cantidadValores + 1;
+        tamanio = Integer.parseInt(ta.image);
+         if(cantidadValores > tamanio) tabla2.add("Error semántico: Se exedio el tamaño del arreglo");
+         if(cantidadValores < tamanio) tabla2.add("Error semántico: No se abarco todo el tamaño del arreglo");
+         if(tamanio == 0) tabla2.add("Error semántico: Valor no permitido");
+        }
+    } catch (ParseException e) {
+            tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
+        }
+}
+
+int ValoresEntero(int cantidadValores): {}
+{
+    <ENTEROS> (<COMA> cantidadValores = ValoresEntero(cantidadValores + 1))?
+    {return cantidadValores;}
+}
+
+int ValoresCadena(int cantidadValores): {}
+{
+    <VCAD> (<COMA> cantidadValores = ValoresCadena(cantidadValores + 1))?
+    {return cantidadValores;}
+}
+
+void SentenciasProcedimientos() : {Token t;}
+{
+    try{
+        {tablaSimbolos.enterScope();}
+        <PROC> PalabrasReservadas() <VOID> t = <IDENTIFICADOR>
+        {
+            emit("Proc", t.image, "", "void");
+            if(tablaSimbolos.contains(t.image)) tabla2.add("Error semántico: La variable " + t.image + " ya ha sido declarada");
+            else tablaSimbolos.addSymbolV(t.image);
+        }
+        <PARENIZQ> <PARENDER>
+        <LLAVEIZQ>
+        (
+            Codigo()
+        )+
+        <LLAVEDER>
+        {tablaSimbolos.exitScope();}
+    } catch (ParseException e) {
+            tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
+        }
+}
+
+void SentenciasFunciones() : {Token t, t1;}
+{
+    try{
+        {tablaSimbolos.enterScope();}
+        <FUNC> PalabrasReservadas() t1 = tipoDato() t = <IDENTIFICADOR>
+        {
+            emit("func", t.image, "", t1.image);
+            if(tablaSimbolos.contains(t.image)) tabla2.add("Error semántico: La variable " + t.image + " ya ha sido declarada");
+            else tablaSimbolos.addSymbol(t.image, t1.image);
+        }
+        <PARENIZQ>
+        [parametros()]
+        <PARENDER>
+        <LLAVEIZQ>
+        (
+           Codigo()
+        )*
+        <RETURN> t = valor2(t1.image) <DELIMITADOR>
+        <LLAVEDER>
+        {
+            String temp = newTemp();
+            emit("return", t.image, "", temp);
+        tablaSimbolos.exitScope();
+        }
+    } catch (ParseException e) {
+            tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
+        }
+}
+/*
+void returnStatement(Token t) : {}
+{
+    try{
+        <RETURN> valor2(token.imagen) <DELIMITADOR>
+    } catch (ParseException e) {
+            tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
+        }
+}
+*/
+void parametros() : {Token t, t1;}
+{
+    try{
+        t =  <IDENTIFICADOR>
+             t1 = tipoDato()
+             {
+                emit("param", t.image, "", t1.image);
+
+               if(tablaSimbolos.contains(t.image)) tabla2.add("Error semántico: La variable " + t.image + " ya ha sido declarada");
+               else tablaSimbolos.addSymbol(t.image, t1.image);
+             }
+        ( <COMA> t =  <IDENTIFICADOR>
+                      t1 = tipoDato()
+                      {
+                        emit("param", t.image, "", t1.image);
+
+                        if(tablaSimbolos.contains(t.image)) tabla2.add("Error semántico: La variable " + t.image + " ya ha sido declarada");
+                        else tablaSimbolos.addSymbol(t.image, t1.image);
+                      }
+        )*
+    } catch (ParseException e) {
+            tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
+        }
+}
+
+void PalabrasReservadas() : {}
+{
+    <PUBLICO>
+    | <PRIVADO>
+    | <ESTATICO>
+}

@@ -1,0 +1,7 @@
+Inicio main
+{
+
+  var numero cad;
+  numero = "10";
+
+}Fin

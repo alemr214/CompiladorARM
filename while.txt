@@ -1,0 +1,10 @@
+Inicio main
+{
+	while(i <= n){
+		var num ent = 2;
+		var num flot;
+		si(num1 < 1){
+			escribir("hola mundo");
+		}
+	}
+}FIN

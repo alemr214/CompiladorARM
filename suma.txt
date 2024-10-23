@@ -1,0 +1,24 @@
+Inicio main
+{
+	var x ent;
+	var suma ent;
+	var resta ent;
+	var division flot;
+	var multiplicacion flot;
+	var residuo flot;
+	bool resultadoAND = 2 AND 2;
+ 	bool resultadoOR = a OR b;
+	bool resultadoNOT = a NOT b;
+	
+	x = a mas b div (a mult c);
+	suma = a mas c;
+	suma = 2 mas 2;
+	resta = 3 menos 2;
+	division = 4 div 2;
+	multiplicacion = 2 mult 2;
+	residuo = 8 res 2;
+
+	escribir(x);
+	escribir("Resultado AND: " + resultadoAND);
+
+}FIN

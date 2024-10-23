@@ -1,0 +1,19 @@
+Inicio main
+{	
+	for(ent j = 0; j<= 10; inc j){
+		var num1 ent;
+	}
+
+	for(ent i=65;i>18; dec i){
+		si(num >= num){
+		var num1 ent = 10;
+		}sino{
+			var num2 flot;
+		}
+
+	}
+
+	for(ent i = 0; i < 10; inc i){
+    		escribir("Valor de i:" + i);
+	}
+}FIN

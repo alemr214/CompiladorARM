@@ -1,0 +1,8 @@
+Inicio main
+{
+  si(num >= num){
+	var num1 ent = 10;
+}sino{
+	var num2 flot;
+}
+}Fin

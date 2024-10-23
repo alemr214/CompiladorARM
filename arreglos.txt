@@ -1,0 +1,4 @@
+Inicio main
+{
+	cad ArregloCadena [3] = {"Hola","Adios", "hello"};
+}FIN

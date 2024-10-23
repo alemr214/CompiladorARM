@@ -1,0 +1,12 @@
+Inicio Main
+{
+    var a bool = verdadero;
+    var b bool = falso;
+
+    SI (a == b) {
+        escribir("a es verdadero y b es falso");
+    } SINO {
+        escribir("Otra condicion");
+    }
+}
+Fin

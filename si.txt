@@ -1,0 +1,11 @@
+Inicio main
+{
+  SI(num >= 2 and num2 == 5){
+	var num1 ent = 10;
+}
+
+  SI(num3 == 2){
+	escribir("hola mundo");
+}
+
+}Fin
