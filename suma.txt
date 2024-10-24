@@ -1,14 +1,17 @@
 Inicio main
 {
-	var x ent;
-	var suma ent;
-	var resta ent;
-	var division flot;
-	var multiplicacion flot;
-	var residuo flot;
-	bool resultadoAND = 2 AND 2;
- 	bool resultadoOR = a OR b;
-	bool resultadoNOT = a NOT b;
+	var ent x = 2.5;
+	var ent suma;
+	var ent resta ;
+	var flot division;
+	var flot multiplicacion;
+	var flot residuo;
+	var bool resultadoAND;
+ 	var bool resultadoOR;
+	var bool resultadoNOT;
+	var ent a;
+	var ent b;
+	var ent c;
 	
 	x = a mas b div (a mult c);
 	suma = a mas c;

@@ -42,7 +42,7 @@ public class SymbolTable {
     }
 
     public boolean contains(String name) {
-        for (int i = scopes.size() - 1; i >= 0; i--) {
+        for (int i = scopes.size() - 1; i >= 1; i--) {
             if (scopes.get(i).containsKey(name)) {
                 return true;
             }
@@ -53,7 +53,7 @@ public class SymbolTable {
     public void Tabla() {
         for (int i = scopes.size() - 1; i >= 0; i--) {
             for (Map.Entry<String, String> entry : scopes.get(i).entrySet()) {
-                System.out.println("Clave " + entry.getKey() + ", Valor " + entry.getValue());
+                System.out.println("Clave: " + entry.getKey() + ", Valor: " + entry.getValue());
             }
         }
     }

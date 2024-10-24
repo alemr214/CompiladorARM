@@ -145,15 +145,7 @@ public class AnalizadorARM {
                 columna += token.image.length(); // Incrementar el contador de columna por la longitud del token
             }
 
-
-
-            // Si encontramos un tipo de dato (int, float, boolean)
-        if (token.kind == AnalizadorARMConstants.ENT || token.kind == AnalizadorARMConstants.FLOT || token.kind == AnalizadorARMConstants.BOOL) {
-            tipoActual = token.image; // Guardamos el tipo (ej. "int")
-            esperandoIdentificador = true; // Ahora esperamos que el próximo token sea el nombre de la variable
-        }
-
-        // Detectar el nombre de la variable (identificador)
+            // Detectar el nombre de la variable (identificador)
         if (esperandoIdentificador && token.kind == AnalizadorARMConstants.IDENTIFICADOR) {
             String nombreVariable = token.image;
 
@@ -166,6 +158,16 @@ public class AnalizadorARM {
             }
             esperandoIdentificador = false; // Ya no esperamos un identificador hasta que haya otro tipo de variable
         }
+
+
+
+            // Si encontramos un tipo de dato (int, float, boolean)
+        if (token.kind == AnalizadorARMConstants.ENT || token.kind == AnalizadorARMConstants.FLOT || token.kind == AnalizadorARMConstants.BOOL) {
+            tipoActual = token.image; // Guardamos el tipo (ej. "int")
+            esperandoIdentificador = true; // Ahora esperamos que el próximo token sea el nombre de la variable
+        }
+
+        
 
 
         }
@@ -386,21 +388,18 @@ void Codigo() : {}
 void declararVariable() : {Token t,t1, t3;}
 {
     try {
-        <VAR> t =  <IDENTIFICADOR>
-        t1 = tipoDato()
+        <VAR> t1 = tipoDato()
+        t =  <IDENTIFICADOR>
+        [<IGUAL> 
+        valor()
+        ] <DELIMITADOR>
         {
             emit("", t.image, "", t1.image);
 
             if(tablaSimbolos.contains(t.image)) tabla2.add("Error semántico: La variable " + t.image + " ya ha sido declarada");
             else tablaSimbolos.addSymbol(t.image, t1.image);
         }
-        /*
-        [<IGUAL> 
-        t3 = valor2(t1.image)
-        {
-            emit("=", t3.image, "", temp);
-        }
-        ]*/ <DELIMITADOR>
+        
 
     } catch (ParseException e) {
         tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla

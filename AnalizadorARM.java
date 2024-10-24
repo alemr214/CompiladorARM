@@ -138,15 +138,7 @@ public class AnalizadorARM implements AnalizadorARMConstants {
                 columna += token.image.length(); // Incrementar el contador de columna por la longitud del token
             }
 
-
-
-            // Si encontramos un tipo de dato (int, float, boolean)
-        if (token.kind == AnalizadorARMConstants.ENT || token.kind == AnalizadorARMConstants.FLOT || token.kind == AnalizadorARMConstants.BOOL) {
-            tipoActual = token.image; // Guardamos el tipo (ej. "int")
-            esperandoIdentificador = true; // Ahora esperamos que el próximo token sea el nombre de la variable
-        }
-
-        // Detectar el nombre de la variable (identificador)
+            // Detectar el nombre de la variable (identificador)
         if (esperandoIdentificador && token.kind == AnalizadorARMConstants.IDENTIFICADOR) {
             String nombreVariable = token.image;
 
@@ -162,8 +154,18 @@ public class AnalizadorARM implements AnalizadorARMConstants {
 
 
 
+            // Si encontramos un tipo de dato (int, float, boolean)
+        if (token.kind == AnalizadorARMConstants.ENT || token.kind == AnalizadorARMConstants.FLOT || token.kind == AnalizadorARMConstants.BOOL) {
+            tipoActual = token.image; // Guardamos el tipo (ej. "int")
+            esperandoIdentificador = true; // Ahora esperamos que el próximo token sea el nombre de la variable
+        }
+
+
+
 
         }
+
+
         //Si no se encontraron se comunica
         if (!seEncontraronErrores && seVerificaronTokens) {
             System.out.print("\u005ct ** NO se encontraron errores l\u00e9xicos en el c\u00f3digo ** \u005cn");
@@ -299,13 +301,23 @@ tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
   final public void declararVariable() throws ParseException {Token t,t1, t3;
     try {
       jj_consume_token(VAR);
-      t = jj_consume_token(IDENTIFICADOR);
       t1 = tipoDato();
+      t = jj_consume_token(IDENTIFICADOR);
+      switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
+      case IGUAL:{
+        jj_consume_token(IGUAL);
+        valor();
+        break;
+        }
+      default:
+        jj_la1[2] = jj_gen;
+        ;
+      }
+      jj_consume_token(DELIMITADOR);
 emit("", t.image, "", t1.image);
 
             if(tablaSimbolos.contains(t.image)) tabla2.add("Error sem\u00e1ntico: La variable " + t.image + " ya ha sido declarada");
             else tablaSimbolos.addSymbol(t.image, t1.image);
-      jj_consume_token(DELIMITADOR);
     } catch (ParseException e) {
 tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
 
@@ -331,7 +343,7 @@ tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
       break;
       }
     default:
-      jj_la1[2] = jj_gen;
+      jj_la1[3] = jj_gen;
       jj_consume_token(-1);
       throw new ParseException();
     }
@@ -369,14 +381,14 @@ if (!tipoEsperado.equals("flot") && !tipoEsperado.isEmpty()) {
       t = jj_consume_token(IDENTIFICADOR);
 if (!tablaSimbolos.contains(t.image) && !tipoEsperado.isEmpty()) {
             tabla2.add("Error sem\u00e1ntico: La variable " + t.image + " no ha sido declarada");
-        } else if (!tablaSimbolos.checkType(t.image, tipoEsperado)) {
+        } else if (!tablaSimbolos.checkType(tipoEsperado, t.image)) {
             tabla2.add("Error sem\u00e1ntico: Se esperaba un valor de tipo " + tipoEsperado + " pero se encontr\u00f3 " + tablaSimbolos.getType(t.image));
         }
         {if ("" != null) return t;}
       break;
       }
     default:
-      jj_la1[3] = jj_gen;
+      jj_la1[4] = jj_gen;
       jj_consume_token(-1);
       throw new ParseException();
     }
@@ -402,7 +414,7 @@ if (!tablaSimbolos.contains(t.image) && !tipoEsperado.isEmpty()) {
       break;
       }
     default:
-      jj_la1[4] = jj_gen;
+      jj_la1[5] = jj_gen;
       jj_consume_token(-1);
       throw new ParseException();
     }
@@ -424,7 +436,7 @@ if (!tablaSimbolos.contains(t.image) && !tipoEsperado.isEmpty()) {
           break;
           }
         default:
-          jj_la1[5] = jj_gen;
+          jj_la1[6] = jj_gen;
           jj_consume_token(-1);
           throw new ParseException();
         }
@@ -436,7 +448,7 @@ if (!tablaSimbolos.contains(t.image) && !tipoEsperado.isEmpty()) {
             break;
             }
           default:
-            jj_la1[6] = jj_gen;
+            jj_la1[7] = jj_gen;
             break label_3;
           }
           jj_consume_token(CONCATENAR);
@@ -450,7 +462,7 @@ if (!tablaSimbolos.contains(t.image) && !tipoEsperado.isEmpty()) {
             break;
             }
           default:
-            jj_la1[7] = jj_gen;
+            jj_la1[8] = jj_gen;
             jj_consume_token(-1);
             throw new ParseException();
           }
@@ -462,7 +474,7 @@ if (!tablaSimbolos.contains(t.image) && !tipoEsperado.isEmpty()) {
           break;
           }
         default:
-          jj_la1[8] = jj_gen;
+          jj_la1[9] = jj_gen;
           break label_2;
         }
       }
@@ -518,7 +530,7 @@ emit("goto", "t" + String.valueOf(tempCount-1), "", labelEnd);
           break;
           }
         default:
-          jj_la1[9] = jj_gen;
+          jj_la1[10] = jj_gen;
           break label_4;
         }
       }
@@ -531,7 +543,7 @@ emit("goto", "t" + String.valueOf(tempCount-1), "", labelEnd);
           break;
           }
         default:
-          jj_la1[10] = jj_gen;
+          jj_la1[11] = jj_gen;
           break label_5;
         }
         gramaticaSiNo();
@@ -569,7 +581,7 @@ tablaSimbolos.enterScope();
           break;
           }
         default:
-          jj_la1[11] = jj_gen;
+          jj_la1[12] = jj_gen;
           break label_6;
         }
       }
@@ -600,7 +612,7 @@ String temp = newTemp();
           break;
           }
         default:
-          jj_la1[12] = jj_gen;
+          jj_la1[13] = jj_gen;
           break label_7;
         }
         condicionLogicos();
@@ -638,7 +650,7 @@ tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
       break;
       }
     default:
-      jj_la1[13] = jj_gen;
+      jj_la1[14] = jj_gen;
       jj_consume_token(-1);
       throw new ParseException();
     }
@@ -671,7 +683,7 @@ tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
       break;
       }
     default:
-      jj_la1[14] = jj_gen;
+      jj_la1[15] = jj_gen;
       jj_consume_token(-1);
       throw new ParseException();
     }
@@ -711,7 +723,7 @@ emit("goto", "t" + String.valueOf(tempCount-1), "", labelEnd);
           break;
           }
         default:
-          jj_la1[15] = jj_gen;
+          jj_la1[16] = jj_gen;
           break label_8;
         }
       }
@@ -753,7 +765,7 @@ tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
           break;
           }
         default:
-          jj_la1[16] = jj_gen;
+          jj_la1[17] = jj_gen;
           break label_9;
         }
         t1 = operadorAritmeticoMasMenos();
@@ -794,7 +806,7 @@ tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
       break;
       }
     default:
-      jj_la1[17] = jj_gen;
+      jj_la1[18] = jj_gen;
       jj_consume_token(-1);
       throw new ParseException();
     }
@@ -817,7 +829,7 @@ tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
       break;
       }
     default:
-      jj_la1[18] = jj_gen;
+      jj_la1[19] = jj_gen;
       jj_consume_token(-1);
       throw new ParseException();
     }
@@ -837,7 +849,7 @@ tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
         break;
         }
       default:
-        jj_la1[19] = jj_gen;
+        jj_la1[20] = jj_gen;
         break label_10;
       }
       op = operadorAritmeticoMulDiv();
@@ -866,7 +878,7 @@ String temp = newTemp();
       break;
       }
     default:
-      jj_la1[20] = jj_gen;
+      jj_la1[21] = jj_gen;
       jj_consume_token(-1);
       throw new ParseException();
     }
@@ -925,7 +937,7 @@ tablaSimbolos.enterScope();
           break;
           }
         default:
-          jj_la1[21] = jj_gen;
+          jj_la1[22] = jj_gen;
           break label_11;
         }
       }
@@ -985,7 +997,7 @@ tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
       break;
       }
     default:
-      jj_la1[22] = jj_gen;
+      jj_la1[23] = jj_gen;
       jj_consume_token(-1);
       throw new ParseException();
     }
@@ -1050,7 +1062,7 @@ tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
       break;
       }
     default:
-      jj_la1[23] = jj_gen;
+      jj_la1[24] = jj_gen;
       ;
     }
 {if ("" != null) return cantidadValores;}
@@ -1066,7 +1078,7 @@ tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
       break;
       }
     default:
-      jj_la1[24] = jj_gen;
+      jj_la1[25] = jj_gen;
       ;
     }
 {if ("" != null) return cantidadValores;}
@@ -1106,7 +1118,7 @@ emit("Proc", t.image, "", "void");
           break;
           }
         default:
-          jj_la1[25] = jj_gen;
+          jj_la1[26] = jj_gen;
           break label_12;
         }
       }
@@ -1135,7 +1147,7 @@ emit("func", t.image, "", t1.image);
         break;
         }
       default:
-        jj_la1[26] = jj_gen;
+        jj_la1[27] = jj_gen;
         ;
       }
       jj_consume_token(PARENDER);
@@ -1159,7 +1171,7 @@ emit("func", t.image, "", t1.image);
           break;
           }
         default:
-          jj_la1[27] = jj_gen;
+          jj_la1[28] = jj_gen;
           break label_13;
         }
         Codigo();
@@ -1203,7 +1215,7 @@ emit("param", t.image, "", t1.image);
           break;
           }
         default:
-          jj_la1[28] = jj_gen;
+          jj_la1[29] = jj_gen;
           break label_14;
         }
         jj_consume_token(COMA);
@@ -1235,7 +1247,7 @@ tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
       break;
       }
     default:
-      jj_la1[29] = jj_gen;
+      jj_la1[30] = jj_gen;
       jj_consume_token(-1);
       throw new ParseException();
     }
@@ -1250,7 +1262,7 @@ tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
   public Token jj_nt;
   private int jj_ntk;
   private int jj_gen;
-  final private int[] jj_la1 = new int[30];
+  final private int[] jj_la1 = new int[31];
   static private int[] jj_la1_0;
   static private int[] jj_la1_1;
   static private int[] jj_la1_2;
@@ -1260,13 +1272,13 @@ tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
       jj_la1_init_2();
    }
    private static void jj_la1_init_0() {
-      jj_la1_0 = new int[] {0x600003a0,0x600003a0,0x1e0,0x18000000,0x18000000,0x0,0x0,0x0,0x0,0x600003a0,0x0,0x600003a0,0xe0000,0xe0000,0x7d00000,0x600003a0,0xc00,0xc00,0x7000,0x7000,0x18000000,0x600003a0,0x18000,0x0,0x0,0x600003a0,0x0,0x600003a0,0x0,0x0,};
+      jj_la1_0 = new int[] {0x600003a0,0x600003a0,0x200000,0x1e0,0x18000000,0x18000000,0x0,0x0,0x0,0x0,0x600003a0,0x0,0x600003a0,0xe0000,0xe0000,0x7d00000,0x600003a0,0xc00,0xc00,0x7000,0x7000,0x18000000,0x600003a0,0x18000,0x0,0x0,0x600003a0,0x0,0x600003a0,0x0,0x0,};
    }
    private static void jj_la1_init_1() {
-      jj_la1_1 = new int[] {0x8000001a,0x8000001a,0x0,0x0,0x0,0x0,0x4000,0x0,0x0,0x8000001a,0x4,0x8000001a,0x0,0x0,0x0,0x8000001a,0x0,0x0,0x0,0x0,0x1000,0x8000001a,0x0,0x80,0x80,0x8000001a,0x0,0x8000001a,0x80,0x70000,};
+      jj_la1_1 = new int[] {0x8000001a,0x8000001a,0x0,0x0,0x0,0x0,0x0,0x4000,0x0,0x0,0x8000001a,0x4,0x8000001a,0x0,0x0,0x0,0x8000001a,0x0,0x0,0x0,0x0,0x1000,0x8000001a,0x0,0x80,0x80,0x8000001a,0x0,0x8000001a,0x80,0x70000,};
    }
    private static void jj_la1_init_2() {
-      jj_la1_2 = new int[] {0x3,0x3,0x0,0x6,0x6,0x6,0x0,0x6,0x6,0x3,0x0,0x3,0x0,0x0,0x0,0x3,0x0,0x0,0x0,0x0,0x6,0x3,0x0,0x0,0x0,0x3,0x2,0x3,0x0,0x0,};
+      jj_la1_2 = new int[] {0x3,0x3,0x0,0x0,0x6,0x6,0x6,0x0,0x6,0x6,0x3,0x0,0x3,0x0,0x0,0x0,0x3,0x0,0x0,0x0,0x0,0x6,0x3,0x0,0x0,0x0,0x3,0x2,0x3,0x0,0x0,};
    }
 
   /** Constructor with InputStream. */
@@ -1280,7 +1292,7 @@ tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
     token = new Token();
     jj_ntk = -1;
     jj_gen = 0;
-    for (int i = 0; i < 30; i++) jj_la1[i] = -1;
+    for (int i = 0; i < 31; i++) jj_la1[i] = -1;
   }
 
   /** Reinitialise. */
@@ -1294,7 +1306,7 @@ tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
     token = new Token();
     jj_ntk = -1;
     jj_gen = 0;
-    for (int i = 0; i < 30; i++) jj_la1[i] = -1;
+    for (int i = 0; i < 31; i++) jj_la1[i] = -1;
   }
 
   /** Constructor. */
@@ -1304,7 +1316,7 @@ tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
     token = new Token();
     jj_ntk = -1;
     jj_gen = 0;
-    for (int i = 0; i < 30; i++) jj_la1[i] = -1;
+    for (int i = 0; i < 31; i++) jj_la1[i] = -1;
   }
 
   /** Reinitialise. */
@@ -1314,7 +1326,7 @@ tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
     token = new Token();
     jj_ntk = -1;
     jj_gen = 0;
-    for (int i = 0; i < 30; i++) jj_la1[i] = -1;
+    for (int i = 0; i < 31; i++) jj_la1[i] = -1;
   }
 
   /** Constructor with generated Token Manager. */
@@ -1323,7 +1335,7 @@ tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
     token = new Token();
     jj_ntk = -1;
     jj_gen = 0;
-    for (int i = 0; i < 30; i++) jj_la1[i] = -1;
+    for (int i = 0; i < 31; i++) jj_la1[i] = -1;
   }
 
   /** Reinitialise. */
@@ -1332,7 +1344,7 @@ tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
     token = new Token();
     jj_ntk = -1;
     jj_gen = 0;
-    for (int i = 0; i < 30; i++) jj_la1[i] = -1;
+    for (int i = 0; i < 31; i++) jj_la1[i] = -1;
   }
 
   private Token jj_consume_token(int kind) throws ParseException {
@@ -1388,7 +1400,7 @@ tabla.add(manejarErrorSintactico(e)); // Agregar error a la tabla
       la1tokens[jj_kind] = true;
       jj_kind = -1;
     }
-    for (int i = 0; i < 30; i++) {
+    for (int i = 0; i < 31; i++) {
       if (jj_la1[i] == jj_gen) {
         for (int j = 0; j < 32; j++) {
           if ((jj_la1_0[i] & (1<<j)) != 0) {

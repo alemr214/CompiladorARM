@@ -4,6 +4,12 @@ ent ->  resta
 flot ->  division
 flot ->  multiplicacion
 flot ->  residuo
+bool ->  resultadoAND
+bool ->  resultadoOR
+bool ->  resultadoNOT
+ent ->  a
+ent ->  b
+ent ->  c
 t0 -> a mult c
 t1 -> b div t0
 t2 -> a mas t1
